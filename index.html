@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Shorts</title>
+    <style>
+        body {
+            background-color: #1a1a1a; 
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .mobile-frame {
+            width: 360px;
+            height: 640px; 
+            background: url('bg.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            color: white;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .top-panel {
+            width: 100%;
+            padding: 12px 15px;
+            box-sizing: border-box;
+            background: rgba(0, 0, 0, 0.5);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .header-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .game-header { font-size: 18px; margin: 0; font-weight: bold; color: #00d2ff; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
+        #levelText { font-size: 15px; font-weight: bold; color: #ffcc00; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
+        
+        .music-btn {
+            background: linear-gradient(to bottom, #333, #111);
+            border: 2px solid #555;
+            color: #aaa;
+            border-radius: 20px;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+            transition: all 0.3s ease;
+        }
+
+        .music-btn.sound-on {
+            background: linear-gradient(to bottom, #ff9800, #f57c00);
+            border: 2px solid #ffeb3b;
+            color: #fff;
+            box-shadow: 0 0 12px #ffcc00, inset 0 0 8px rgba(255, 255, 255, 0.6);
+        }
+
+        .controls-row {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .tool-btn {
+            flex: 1;
+            padding: 8px 4px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+
+        .btn-undo { background: linear-gradient(to bottom, #ff9800, #f57c00); }
+        .btn-bottle { background: linear-gradient(to bottom, #4CAF50, #2E7D32); }
+        .btn-restart-top { background: linear-gradient(to bottom, #e53935, #c62828); }
+
+        @keyframes urgentGlow {
+            0% { box-shadow: 0 0 5px #ffeb3b, 0 0 10px #ffeb3b; transform: scale(1); }
+            50% { box-shadow: 0 0 20px #ffeb3b, 0 0 30px #ffeb3b; transform: scale(1.05); border-color: #fff; }
+            100% { box-shadow: 0 0 5px #ffeb3b, 0 0 10px #ffeb3b; transform: scale(1); }
+        }
+        .highlight-stuck {
+            animation: urgentGlow 1s infinite !important;
+            border: 2px solid #ffeb3b !important;
+        }
+
+        .game-area {
+            flex: 1;
+            width: 100%;
+            padding: 20px 10px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .game-container { 
+            display: flex; 
+            justify-content: center; 
+            gap: 12px; 
+            flex-wrap: wrap; 
+            width: 100%;
+            align-content: flex-start;
+        }
+        
+        /* ???? ??? ?? ?? ???? (Tilt) / ?????? ???????? */
+        .bottle {
+            width: 62px; 
+            height: 190px;
+            background: url('bottle-1.png') no-repeat center center;
+            background-size: 100% 100%;
+            display: flex;
+            flex-direction: column-reverse;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.3s ease;
+            margin-bottom: 20px;
+            padding: 22px 9px 14px 9px;
+            box-sizing: border-box;
+            gap: 2px;
+            transform-origin: top center;
+        }
+        
+        .bottle.selected {
+            transform: translateY(-20px) scale(1.05);
+            filter: drop-shadow(0px 12px 18px rgba(255, 204, 0, 0.9));
+        }
+
+        /* ?? ???? ??????? ?? ??? ?? ?? ???? ?? ????? ?? ?????? ????? */
+        .bottle.pouring-left {
+            transform: translateY(-25px) rotate(-45deg) translateX(-15px);
+            filter: drop-shadow(5px 15px 20px rgba(0, 210, 255, 0.8));
+        }
+        .bottle.pouring-right {
+            transform: translateY(-25px) rotate(45deg) translateX(15px);
+            filter: drop-shadow(-5px 15px 20px rgba(0, 210, 255, 0.8));
+        }
+
+        .water { 
+            width: 100%; 
+            height: 23.5%; 
+            border-radius: 4px;
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.4), inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .screen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 0; left: 0;
+            background: url('bg.png');
+            background-size: cover;
+            background-position: center;
+            z-index: 20;
+        }
+        #gameScreen { display: none; z-index: 1; flex-direction: column; justify-content: flex-start; }
+
+        .title-main {
+            font-size: 36px;
+            font-weight: 900;
+            color: #00d2ff;
+            text-shadow: 2px 2px 6px rgba(0,0,0,0.9);
+            margin-bottom: 10px;
+        }
+        .play-btn {
+            background: linear-gradient(to bottom, #4CAF50, #2E7D32);
+            color: white;
+            border: 2px solid #a5d6a7;
+            border-radius: 30px;
+            padding: 15px 50px;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6);
+            margin-top: 30px;
+        }
+
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            overflow: hidden;
+        }
+        .modal-content {
+            background: rgba(11, 11, 42, 0.95);
+            padding: 30px 20px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid #ffcc00;
+            box-shadow: 0 0 25px rgba(255, 204, 0, 0.8);
+            width: 80%;
+            z-index: 60;
+            position: relative;
+        }
+        .modal-content h2 { color: #ffcc00; margin-top: 0; font-size: 26px; text-shadow: 0 0 10px rgba(255, 204, 0, 0.5); }
+        .modal-content p { color: white; font-size: 16px; margin-bottom: 25px; }
+        .modal-buttons { display: flex; flex-direction: column; gap: 15px; }
+        .modal-btn { padding: 12px; font-size: 18px; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; color: white; }
+        .btn-next { background: linear-gradient(to right, #4CAF50, #2E7D32); }
+        .btn-restart-modal { background: linear-gradient(to right, #2196F3, #1565C0); }
+
+        #confettiCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 55;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="mobile-frame">
+        
+        <div id="homeScreen" class="screen">
+            <h1 class="title-main">Water Shorts</h1>
+            <div style="margin: 30px 0;">
+                <div class="bottle" style="transform: scale(1.4); cursor: default;">
+                    <div class="water" style="background: linear-gradient(135deg, #00d2ff, #0077ff);"></div>
+                    <div class="water" style="background: linear-gradient(135deg, #00d2ff, #0077ff);"></div>
+                    <div class="water" style="background: linear-gradient(135deg, #ffea00, #ff9900);"></div>
+                    <div class="water" style="background: linear-gradient(135deg, #ffea00, #ff9900);"></div>
+                </div>
+            </div>
+            <div id="savedLevelDisplay" style="color:#ffcc00; font-size:20px; font-weight:bold; text-shadow: 1px 1px 3px rgba(0,0,0,0.9);">Level: 1</div>
+            <button class="play-btn" onclick="startGame()">? Play</button>
+        </div>
+
+        <div id="gameScreen" class="screen">
+            
+            <div class="top-panel">
+                <div class="header-row">
+                    <h2 class="game-header">Water Shorts</h2>
+                    <div id="levelText">Level 1</div>
+                    <button id="musicToggleBtn" class="music-btn sound-on" onclick="toggleMusic()">SOUND: ON</button>
+                </div>
+                
+                <div class="controls-row">
+                    <button id="undoBtn" class="tool-btn btn-undo" onclick="undoMove()">? Undo (Ad)</button>
+                    <button id="extraBottleBtn" class="tool-btn btn-bottle" onclick="addExtraBottle()">? Bottle (Ad)</button>
+                    <button id="restartBtn" class="tool-btn btn-restart-top" onclick="restartLevel()">? Restart</button>
+                </div>
+            </div>
+
+            <div class="game-area">
+                <div class="game-container" id="gameContainer"></div>
+            </div>
+
+        </div>
+
+        <div id="winModal" class="modal-overlay">
+            <canvas id="confettiCanvas"></canvas>
+            <div class="modal-content">
+                <h2>Awesome! ??</h2>
+                <p>Level Completed Successfully.</p>
+                <div class="modal-buttons">
+                    <button class="modal-btn btn-next" onclick="nextLevel()">Next Level ?</button>
+                    <button class="modal-btn btn-restart-modal" onclick="replayLevel()">? Restart Level</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <audio id="bgMusic" loop>
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const bottleCapacity = 4;
+        let currentLevelIndex = 0; 
+        let bottles = [];
+        let selectedBottleIndex = null;
+        let moveHistory = []; 
+        let extraBottleUsed = false; 
+        let isMusicPlaying = true; 
+        let isAnimating = false; // ???????? ?? ????? ??? ??? ????? ?? ???
+
+        window.addEventListener('DOMContentLoaded', () => {
+            let music = document.getElementById('bgMusic');
+            let btn = document.getElementById('musicToggleBtn');
+            music.volume = 0.3;
+            music.play().then(() => {
+                isMusicPlaying = true;
+                btn.innerText = "SOUND: ON";
+                btn.classList.add('sound-on');
+            }).catch(e => {
+                isMusicPlaying = false;
+                btn.innerText = "SOUND: OFF";
+                btn.classList.remove('sound-on');
+            });
+        });
+
+        function playPourEffect() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const audioCtx = new AudioContext();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.15);
+                
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.2);
+            } catch(e) {}
+        }
+
+        function playWinFanfare() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const ctx = new AudioContext();
+                if (ctx.state === 'suspended') ctx.resume();
+
+                let notes = [523.25, 659.25, 783.99, 1046.50]; 
+                let times = [0, 0.15, 0.3, 0.45];
+                
+                notes.forEach((freq, i) => {
+                    let osc = ctx.createOscillator();
+                    let gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, ctx.currentTime + times[i]);
+                    
+                    gain.gain.setValueAtTime(0.4, ctx.currentTime + times[i]);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + times[i] + 0.4);
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    osc.start(ctx.currentTime + times[i]);
+                    osc.stop(ctx.currentTime + times[i] + 0.4);
+                });
+            } catch(e) {}
+        }
+
+        function startConfetti() {
+            const canvas = document.getElementById('confettiCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+
+            let particles = [];
+            let colors = ['#ffcc00', '#ff416c', '#00d2ff', '#56ab2f', '#ff9800', '#ffffff'];
+
+            for (let i = 0; i < 80; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.7) * 8 - 2,
+                    size: Math.random() * 6 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    gravity: 0.2,
+                    alpha: 1
+                });
+            }
+
+            let animationId;
+            function render() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach((p, index) => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += p.gravity;
+                    p.alpha -= 0.012;
+
+                    if (p.alpha <= 0) {
+                        particles.splice(index, 1);
+                    } else {
+                        ctx.save();
+                        ctx.globalAlpha = p.alpha;
+                        ctx.fillStyle = p.color;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                });
+
+                if (particles.length > 0) {
+                    animationId = requestAnimationFrame(render);
+                }
+            }
+            render();
+        }
+
+        const allAvailableColors = [
+            'linear-gradient(135deg, #ff0000, #b30000)', 
+            'linear-gradient(135deg, #00ff00, #008000)', 
+            'linear-gradient(135deg, #0051ff, #002288)', 
+            'linear-gradient(135deg, #ffea00, #ff9900)', 
+            'linear-gradient(135deg, #ff00ff, #990099)', 
+            'linear-gradient(135deg, #00ffff, #0088aa)', 
+            'linear-gradient(135deg, #ff6600, #cc3300)', 
+            'linear-gradient(135deg, #9900ff, #440088)', 
+            'linear-gradient(135deg, #33ffcc, #009977)', 
+            'linear-gradient(135deg, #ffffff, #888888)'  
+        ];
+        
+        function updateHomeLevelDisplay() {
+            document.getElementById('savedLevelDisplay').innerText = "Level: " + (currentLevelIndex + 1);
+        }
+        updateHomeLevelDisplay();
+
+        function toggleMusic() {
+            let music = document.getElementById('bgMusic');
+            let btn = document.getElementById('musicToggleBtn');
+            if (isMusicPlaying) {
+                music.pause();
+                btn.innerText = "SOUND: OFF";
+                btn.classList.remove('sound-on');
+                isMusicPlaying = false;
+            } else {
+                music.volume = 0.3;
+                music.play().catch(e => console.log(e));
+                btn.innerText = "SOUND: ON";
+                btn.classList.add('sound-on');
+                isMusicPlaying = true;
+            }
+        }
+
+        function startGame() {
+            document.getElementById('homeScreen').style.display = 'none'; 
+            document.getElementById('gameScreen').style.display = 'flex'; 
+            loadLevel(currentLevelIndex);
+        }
+
+        const manualLevels = [
+            [ ['linear-gradient(135deg, #ffea00, #ff9900)', 'linear-gradient(135deg, #ffea00, #ff9900)', 'linear-gradient(135deg, #0051ff, #002288)', 'linear-gradient(135deg, #0051ff, #002288)'], ['linear-gradient(135deg, #0051ff, #002288)', 'linear-gradient(135deg, #0051ff, #002288)', 'linear-gradient(135deg, #ffea00, #ff9900)', 'linear-gradient(135deg, #ffea00, #ff9900)'], [] ],
+            [ ['linear-gradient(135deg, #0051ff, #002288)', 'linear-gradient(135deg, #ffea00, #ff9900)', 'linear-gradient(135deg, #0051ff, #002288)', 'linear-gradient(135deg, #ffea00, #ff9900)'], ['linear-gradient(135deg, #ffea00, #ff9900)', 'linear-gradient(135deg, #0051ff, #002288)', 'linear-gradient(135deg, #ffea00, #ff9900)', 'linear-gradient(135deg, #0051ff, #002288)'], [] ],
+            [ ['linear-gradient(135deg, #ff0000, #b30000)', 'linear-gradient(135deg, #00ff00, #008000)', 'linear-gradient(135deg, #ff0000, #b30000)', 'linear-gradient(135deg, #00ff00, #008000)'], ['linear-gradient(135deg, #00ff00, #008000)', 'linear-gradient(135deg, #ff0000, #b30000)', 'linear-gradient(135deg, #00ff00, #008000)', 'linear-gradient(135deg, #ff0000, #b30000)'], [] ],
+            [ ['linear-gradient(135deg, #ff0000, #b30000)', 'linear-gradient(135deg, #ff0000, #b30000)', 'linear-gradient(135deg, #0051ff, #002288)', 'linear-gradient(135deg, #0051ff, #002288)'], ['linear-gradient(135deg, #00ff00, #008000)', 'linear-gradient(135deg, #00ff00, #008000)', 'linear-gradient(135deg, #ff0000, #b30000)', 'linear-gradient(135deg, #ff0000, #b30000)'], ['linear-gradient(135deg, #0051ff, #002288)', 'linear-gradient(135deg, #0051ff, #002288)', 'linear-gradient(135deg, #00ff00, #008000)', 'linear-gradient(135deg, #00ff00, #008000)'], [] ],
+            [ ['linear-gradient(135deg, #ff0000, #b30000)', 'linear-gradient(135deg, #00ff00, #008000)', 'linear-gradient(135deg, #0051ff, #002288)', 'linear-gradient(135deg, #ff0000, #b30000)'], ['linear-gradient(135deg, #0051ff, #002288)', 'linear-gradient(135deg, #ff0000, #b30000)', 'linear-gradient(135deg, #00ff00, #008000)', 'linear-gradient(135deg, #0051ff, #002288)'], ['linear-gradient(135deg, #00ff00, #008000)', 'linear-gradient(135deg, #0051ff, #002288)', 'linear-gradient(135deg, #ff0000, #b30000)', 'linear-gradient(135deg, #00ff00, #008000)'], [] ]
+        ];
+
+        function generateDynamicLevel(levelNum) {
+            let numColors = 3 + Math.floor(levelNum / 5); 
+            if (numColors > 10) numColors = 10; 
+            let levelColors = allAvailableColors.slice(0, numColors);
+            
+            while(true) {
+                let pool = [];
+                for(let c of levelColors) {
+                    pool.push(c, c, c, c);
+                }
+                
+                for (let i = pool.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [pool[i], pool[j]] = [pool[j], pool[i]];
+                }
+                
+                let state = [];
+                let idx = 0;
+                for(let i=0; i<numColors; i++) {
+                    let b = [];
+                    for(let j=0; j<4; j++) {
+                        b.push(pool[idx++]);
+                    }
+                    state.push(b);
+                }
+                state.push([]); 
+                
+                let isAlreadySolved = false;
+                for(let b of state) {
+                    if (b.length === 4 && b[0] === b[1] && b[1] === b[2] && b[2] === b[3]) {
+                        isAlreadySolved = true;
+                        break;
+                    }
+                }
+                if (isAlreadySolved) continue; 
+
+                let hasInitialMove = false;
+                for(let i=0; i<state.length; i++) {
+                    for(let j=0; j<state.length; j++) {
+                        if (i !== j && canPourState(state, i, j)) {
+                            hasInitialMove = true;
+                            break;
+                        }
+                    }
+                    if(hasInitialMove) break;
+                }
+                if (!hasInitialMove) continue;
+
+                if (isSolvable(state)) {
+                    return state;
+                }
+            }
+        }
+
+        function canPourState(state, fromIdx, toIdx) {
+            let src = state[fromIdx], tgt = state[toIdx];
+            if (src.length === 0 || tgt.length === 4) return false;
+            let color = src[src.length - 1];
+            if (tgt.length > 0 && tgt[tgt.length - 1] !== color) return false;
+            return true;
+        }
+
+        function doPourState(state, fromIdx, toIdx) {
+            let src = state[fromIdx], tgt = state[toIdx];
+            let color = src[src.length - 1];
+            let blocks = 0;
+            for (let i = src.length - 1; i >= 0; i--) {
+                if (src[i] === color) blocks++; else break;
+            }
+            let space = 4 - tgt.length;
+            let move = Math.min(blocks, space);
+            for (let i = 0; i < move; i++) { src.pop(); tgt.push(color); }
+        }
+
+        function isWinStateAI(state) {
+            for (let i = 0; i < state.length; i++) {
+                if (state[i].length > 0) {
+                    if (state[i].length !== 4) return false;
+                    for (let j = 1; j < state[i].length; j++) {
+                        if (state[i][j] !== state[i][0]) return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function cloneState(state) {
+            let clone = [];
+            for (let i = 0; i < state.length; i++) clone.push([...state[i]]);
+            return clone;
+        }
+
+        function isSolvable(initialState) {
+            let visited = new Set();
+            let queue = [cloneState(initialState)];
+            visited.add(JSON.stringify(initialState));
+            let qIndex = 0;
+            let maxSteps = 2000; 
+
+            while (qIndex < queue.length && qIndex < maxSteps) {
+                let current = queue[qIndex++];
+                if (isWinStateAI(current)) return true;
+
+                for (let i = 0; i < current.length; i++) {
+                    for (let j = 0; j < current.length; j++) {
+                        if (i !== j && canPourState(current, i, j)) {
+                            let nextState = cloneState(current);
+                            doPourState(nextState, i, j);
+                            let str = JSON.stringify(nextState);
+                            if (!visited.has(str)) {
+                                visited.add(str);
+                                queue.push(nextState);
+                            }
+                        }
+                    }
+                }
+            }
+            return false; 
+        }
+
+        function checkStuckConditionAI() {
+            let undoBtn = document.getElementById('undoBtn');
+            let bottleBtn = document.getElementById('extraBottleBtn');
+            let restartBtn = document.getElementById('restartBtn');
+
+            if (moveHistory.length === 0) {
+                undoBtn.classList.remove('highlight-stuck');
+                bottleBtn.classList.remove('highlight-stuck');
+                restartBtn.classList.remove('highlight-stuck');
+                return;
+            }
+
+            if (isWinStateAI(bottles)) {
+                undoBtn.classList.remove('highlight-stuck');
+                bottleBtn.classList.remove('highlight-stuck');
+                restartBtn.classList.remove('highlight-stuck');
+                return;
+            }
+            
+            let solvable = isSolvable(bottles);
+            
+            if (!solvable) {
+                undoBtn.classList.add('highlight-stuck');
+                bottleBtn.classList.add('highlight-stuck');
+                restartBtn.classList.add('highlight-stuck');
+            } else {
+                undoBtn.classList.remove('highlight-stuck');
+                bottleBtn.classList.remove('highlight-stuck');
+                restartBtn.classList.remove('highlight-stuck');
+            }
+        }
+
+        function loadLevel(index) {
+            document.getElementById('levelText').innerText = "Level " + (index + 1);
+            if (index < manualLevels.length) {
+                bottles = JSON.parse(JSON.stringify(manualLevels[index]));
+            } else {
+                bottles = generateDynamicLevel(index);
+            }
+            
+            moveHistory = [];
+            extraBottleUsed = false;
+            selectedBottleIndex = null;
+            isAnimating = false;
+            
+            document.getElementById('undoBtn').classList.remove('highlight-stuck');
+            document.getElementById('extraBottleBtn').classList.remove('highlight-stuck');
+            document.getElementById('restartBtn').classList.remove('highlight-stuck');
+            
+            renderBottles();
+        }
+
+        function renderBottles() {
+            const container = document.getElementById('gameContainer');
+            container.innerHTML = ''; 
+            bottles.forEach((bottleData, index) => {
+                const bottleDiv = document.createElement('div');
+                bottleDiv.className = 'bottle';
+                if (selectedBottleIndex === index) bottleDiv.classList.add('selected');
+                bottleDiv.onclick = () => handleBottleClick(index);
+                
+                bottleData.forEach(color => {
+                    const waterDiv = document.createElement('div');
+                    waterDiv.className = 'water';
+                    waterDiv.style.background = color;
+                    bottleDiv.appendChild(waterDiv);
+                });
+                container.appendChild(bottleDiv);
+            });
+            checkStuckConditionAI(); 
+        }
+
+        function handleBottleClick(index) {
+            if (isAnimating) return; // ???????? ?? ????? ??? ???? ??? ??
+
+            if (selectedBottleIndex === null) {
+                if (bottles[index].length > 0) { 
+                    selectedBottleIndex = index; 
+                    renderBottles(); 
+                }
+            } else {
+                if (selectedBottleIndex === index) {
+                    selectedBottleIndex = null; 
+                    renderBottles();
+                } else {
+                    let fromIdx = selectedBottleIndex;
+                    let toIdx = index;
+
+                    if (canPourCheck(fromIdx, toIdx)) {
+                        isAnimating = true;
+                        
+                        // ???? ?? ????? ?? ?????? ???????? ???? ???? ????[cite: 11]
+                        const container = document.getElementById('gameContainer');
+                        let fromDiv = container.children[fromIdx];
+                        
+                        // ?? ?? ???? ?? ???? ?? ??? ???? ?? (????? ?? ?????)
+                        let pourClass = (fromIdx > toIdx) ? 'pouring-left' : 'pouring-right';
+                        if (fromDiv) fromDiv.classList.add(pourClass);
+
+                        setTimeout(() => {
+                            tryPourAction(fromIdx, toIdx);
+                            playPourEffect();
+                            selectedBottleIndex = null;
+                            renderBottles();
+                            isAnimating = false;
+                            setTimeout(checkWinCondition, 200);
+                        }, 350); // ???????? ?? ???????
+
+                    } else {
+                        if (bottles[index].length > 0) { 
+                            selectedBottleIndex = index; 
+                            renderBottles(); 
+                        } else { 
+                            selectedBottleIndex = null; 
+                            renderBottles(); 
+                        }
+                    }
+                }
+            }
+        }
+
+        function canPourCheck(fromIdx, toIdx) {
+            let src = bottles[fromIdx];
+            let tgt = bottles[toIdx];
+            if (src.length === 0 || tgt.length === bottleCapacity) return false;
+            let color = src[src.length - 1];
+            if (tgt.length > 0 && tgt[tgt.length - 1] !== color) return false;
+            return true;
+        }
+
+        function tryPourAction(fromIndex, toIndex) {
+            let source = bottles[fromIndex];
+            let target = bottles[toIndex];
+            let colorToPour = source[source.length - 1];
+
+            let blocksToMove = 0;
+            for (let i = source.length - 1; i >= 0; i--) {
+                if (source[i] === colorToPour) blocksToMove++;
+                else break;
+            }
+            let spaceAvailable = bottleCapacity - target.length;
+            let actualMove = Math.min(blocksToMove, spaceAvailable);
+
+            if (actualMove > 0) {
+                moveHistory.push({ from: fromIndex, to: toIndex, count: actualMove, color: colorToPour });
+                for (let i = 0; i < actualMove; i++) {
+                    source.pop();
+                    target.push(colorToPour);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        function undoMove() {
+            if (isAnimating || moveHistory.length === 0) return;
+            let confirmAd = confirm("Watch a short video ad to Undo your move?");
+            if (confirmAd) {
+                let lastMove = moveHistory.pop();
+                for(let i = 0; i < lastMove.count; i++){
+                    bottles[lastMove.to].pop(); 
+                    bottles[lastMove.from].push(lastMove.color); 
+                }
+                selectedBottleIndex = null;
+                renderBottles();
+            }
+        }
+
+        function addExtraBottle() {
+            if (isAnimating || extraBottleUsed) return;
+            let confirmAd = confirm("Stuck? Watch an ad to get an extra empty bottle!");
+            if (confirmAd) {
+                bottles.push([]); 
+                extraBottleUsed = true;
+                selectedBottleIndex = null;
+                renderBottles();
+            }
+        }
+
+        function checkWinCondition() {
+            if (isWinStateAI(bottles)) {
+                document.getElementById('undoBtn').classList.remove('highlight-stuck');
+                document.getElementById('extraBottleBtn').classList.remove('highlight-stuck');
+                document.getElementById('restartBtn').classList.remove('highlight-stuck');
+                playWinFanfare();
+                document.getElementById('winModal').style.display = 'flex';
+                startConfetti();
+            }
+        }
+
+        function nextLevel() {
+            document.getElementById('winModal').style.display = 'none'; 
+            currentLevelIndex++;
+            updateHomeLevelDisplay();
+            loadLevel(currentLevelIndex);
+        }
+
+        function replayLevel() {
+            document.getElementById('winModal').style.display = 'none'; 
+            loadLevel(currentLevelIndex); 
+        }
+
+        function restartLevel() { loadLevel(currentLevelIndex); }
+    </script>
+</body>
+</html>
